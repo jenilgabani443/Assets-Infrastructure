@@ -12,6 +12,10 @@ import { generalLimiter, authLimiter } from './middleware/rateLimiter.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
 import { sendSuccess } from './utils/apiResponse.js';
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import assetRoutes from './routes/assetRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -61,6 +65,12 @@ app.get('/api/health', (req, res) => {
     database: dbStatus
   });
 });
+
+// 7. API Resource Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/assets', assetRoutes);
 
 // 7. 404 Route Not Found Handler
 app.use(notFoundHandler);

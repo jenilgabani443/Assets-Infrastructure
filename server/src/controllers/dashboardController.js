@@ -2,6 +2,7 @@ import Asset from '../models/Asset.js';
 import AssetCategory from '../models/AssetCategory.js';
 import MaintenanceLog from '../models/MaintenanceLog.js';
 import AuditLog from '../models/AuditLog.js';
+import User from '../models/User.js';
 import { markOverdueMaintenance } from '../utils/maintenanceHelper.js';
 import { sendSuccess } from '../utils/apiResponse.js';
 

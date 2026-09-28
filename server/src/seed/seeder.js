@@ -1,5 +1,10 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import { seedDatabase } from './seed.js';
 
-console.log('Seed runner placeholder. Full seeding script will be implemented in upcoming task.');
-process.exit(0);
+seedDatabase()
+  .then(() => {
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error('❌ Seeder execution failed:', err);
+    process.exit(1);
+  });

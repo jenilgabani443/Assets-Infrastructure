@@ -8,11 +8,12 @@ export const Select = React.forwardRef(
       error,
       helperText,
       options = [],
-      placeholder = 'Select an option',
+      placeholder,
       id,
       className = '',
       required = false,
       disabled = false,
+      children,
       ...props
     },
     ref
@@ -42,20 +43,33 @@ export const Select = React.forwardRef(
             } ${className}`}
             {...props}
           >
-            {placeholder && (
-              <option value="" disabled>
-                {placeholder}
-              </option>
+            {children ? (
+              <>
+                {placeholder && (
+                  <option value="" disabled={required}>
+                    {placeholder}
+                  </option>
+                )}
+                {children}
+              </>
+            ) : (
+              <>
+                {placeholder !== false && (
+                  <option value="" disabled={required}>
+                    {placeholder || 'Select an option'}
+                  </option>
+                )}
+                {options.map((opt) => {
+                  const value = typeof opt === 'object' ? opt.value : opt;
+                  const labelText = typeof opt === 'object' ? opt.label : opt;
+                  return (
+                    <option key={value} value={value}>
+                      {labelText}
+                    </option>
+                  );
+                })}
+              </>
             )}
-            {options.map((opt) => {
-              const value = typeof opt === 'object' ? opt.value : opt;
-              const labelText = typeof opt === 'object' ? opt.label : opt;
-              return (
-                <option key={value} value={value}>
-                  {labelText}
-                </option>
-              );
-            })}
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
             <ChevronDown className="w-4 h-4" />

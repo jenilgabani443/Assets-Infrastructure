@@ -62,7 +62,9 @@ export default function EditMaintenanceModal({
       }
     } catch (err) {
       console.error('Update maintenance error:', err);
-      setError(err.response?.data?.message || 'Failed to update work order');
+      const serverMsg = err.response?.data?.message || err.message || 'Failed to update work order';
+      const validationDetails = err.response?.data?.errors?.map((e) => e.message || e.msg).join(', ');
+      setError(validationDetails ? `${serverMsg}: ${validationDetails}` : serverMsg);
     } finally {
       setSubmitting(false);
     }

@@ -91,7 +91,9 @@ export default function CreateWorkOrderModal({
       }
     } catch (err) {
       console.error('Create error:', err);
-      setError(err.response?.data?.message || 'Failed to schedule maintenance');
+      const serverMsg = err.response?.data?.message || err.message || 'Failed to schedule maintenance';
+      const validationDetails = err.response?.data?.errors?.map((e) => e.message || e.msg).join(', ');
+      setError(validationDetails ? `${serverMsg}: ${validationDetails}` : serverMsg);
     } finally {
       setSubmitting(false);
     }

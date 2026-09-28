@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, AlertTriangle, ArrowRight, CheckCircle } from 'lucide-react';
 import { Modal, Button, Textarea, Select } from '../../../components/ui';
 import { ALLOWED_STAGE_TRANSITIONS } from '../../../utils';
@@ -19,6 +19,15 @@ export default function ChangeStageModal({
   const [remarks, setRemarks] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (asset && isOpen) {
+      const nextStages = ALLOWED_STAGE_TRANSITIONS[asset.lifecycleStage] || [];
+      setToStage(nextStages[0] || '');
+      setRemarks('');
+      setError('');
+    }
+  }, [asset, isOpen]);
 
   // Handle stage transition submit
   const handleSubmit = async (e) => {
@@ -53,7 +62,7 @@ export default function ChangeStageModal({
     } catch (err) {
       console.error('Lifecycle transition error:', err);
       const serverMsg =
-        err.response?.data?.message || 'Failed to update lifecycle stage';
+        err.response?.data?.message || err.message || 'Failed to update lifecycle stage';
       const allowedMsg = err.response?.data?.allowedNextStages
         ? ` Allowed: ${err.response.data.allowedNextStages.join(', ')}`
         : '';

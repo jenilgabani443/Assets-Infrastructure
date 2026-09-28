@@ -30,14 +30,32 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 app.use(helmet());
 
 // 2. CORS configuration with credentials support
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://assets-infrastructure-client.onrender.com',
+  'https://assets-infrastructure.onrender.com'
+];
+if (CLIENT_URL) {
+  allowedOrigins.push(CLIENT_URL.replace(/\/$/, ''));
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, postman) or matching CLIENT_URL
-      if (!origin || origin === CLIENT_URL || origin === 'http://localhost:5173' || origin === 'http://localhost:3000') {
+      // Allow requests with no origin (like mobile apps, curl, postman) or matching allowed origins
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes(origin.replace(/\/$/, '')) ||
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+        /\.onrender\.com$/.test(origin)
+      ) {
         callback(null, true);
       } else {
-        callback(new Error(`Origin ${origin} not allowed by CORS`));
+        callback(null, false);
       }
     },
     credentials: true,

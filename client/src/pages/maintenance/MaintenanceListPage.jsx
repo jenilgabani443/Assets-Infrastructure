@@ -216,7 +216,7 @@ export default function MaintenanceListPage() {
       }
     } catch (err) {
       console.error('Start maintenance error:', err);
-      toast.error(err.response?.data?.message || 'Could not start task');
+      toast.error(err.response?.data?.message || err.message || 'Could not start task');
     } finally {
       setActionLoading(false);
     }
@@ -234,7 +234,7 @@ export default function MaintenanceListPage() {
       }
     } catch (err) {
       console.error('Delete error:', err);
-      toast.error(err.response?.data?.message || 'Failed to delete task');
+      toast.error(err.response?.data?.message || err.message || 'Failed to delete task');
     } finally {
       setActionLoading(false);
       setDeleteConfirmOpen(false);

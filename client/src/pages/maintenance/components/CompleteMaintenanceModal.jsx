@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, AlertTriangle } from 'lucide-react';
 import { Modal, Button, Input, Textarea } from '../../../components/ui';
 import api from '../../../api/axios';
@@ -12,10 +12,18 @@ export default function CompleteMaintenanceModal({
 }) {
   const { toast } = useToast();
 
-  const [cost, setCost] = useState(log?.cost !== undefined ? log.cost : '');
+  const [cost, setCost] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (log && isOpen) {
+      setCost(log.cost !== undefined && log.cost !== null ? log.cost : '');
+      setNotes('');
+      setError('');
+    }
+  }, [log, isOpen]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,7 +38,7 @@ export default function CompleteMaintenanceModal({
 
       if (res.data?.success) {
         toast.success(
-          res.data.data?.assetStageTransitioned
+          res.data.data?.assetReturnedToService
             ? 'Work completed! Asset restored to In Service.'
             : 'Maintenance marked as completed.'
         );
@@ -41,8 +49,8 @@ export default function CompleteMaintenanceModal({
         throw new Error(res.data?.message || 'Failed to complete task');
       }
     } catch (err) {
-      console.error('Complete error:', err);
-      setError(err.response?.data?.message || 'Failed to complete work order');
+      console.error('Complete maintenance error:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to complete work order');
     } finally {
       setSubmitting(false);
     }

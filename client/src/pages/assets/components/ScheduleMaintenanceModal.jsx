@@ -84,7 +84,9 @@ export default function ScheduleMaintenanceModal({
       }
     } catch (err) {
       console.error('Schedule error:', err);
-      setError(err.response?.data?.message || 'Failed to schedule maintenance');
+      const serverMsg = err.response?.data?.message || err.message || 'Failed to schedule maintenance';
+      const validationDetails = err.response?.data?.errors?.map((e) => e.message || e.msg).join(', ');
+      setError(validationDetails ? `${serverMsg}: ${validationDetails}` : serverMsg);
     } finally {
       setSubmitting(false);
     }

@@ -328,7 +328,6 @@ export default function AssetFormPage() {
       category: formData.category,
       subcategory: formData.subcategory.trim() || undefined,
       status: formData.status,
-      lifecycleStage: formData.lifecycleStage,
       department: formData.department.trim() || undefined,
       cost: formData.cost !== '' ? parseFloat(formData.cost) : 0,
       expectedLifespanYears:
@@ -342,8 +341,11 @@ export default function AssetFormPage() {
       customFields: formData.customFields
     };
 
-    if (formData.assetTag?.trim()) {
-      payload.assetTag = formData.assetTag.trim();
+    if (!isEdit) {
+      payload.lifecycleStage = formData.lifecycleStage;
+      if (formData.assetTag?.trim()) {
+        payload.assetTag = formData.assetTag.trim();
+      }
     }
 
     // Location object
@@ -457,6 +459,8 @@ export default function AssetFormPage() {
               label="Asset Tag"
               placeholder={isEdit ? formData.assetTag : 'Auto-generated if left blank (e.g. AST-0012)'}
               value={formData.assetTag}
+              disabled={isEdit}
+              helper={isEdit ? 'Asset tags are unique and immutable system identifiers' : 'Optional. AST-xxxx auto-assigned if blank'}
               onChange={(e) => setFormData({ ...formData, assetTag: e.target.value })}
               error={formErrors.assetTag}
             />
@@ -476,6 +480,8 @@ export default function AssetFormPage() {
             <Select
               label="Lifecycle Stage"
               value={formData.lifecycleStage}
+              disabled={isEdit}
+              helperText={isEdit ? 'Lifecycle transitions are recorded from the asset details page with audit remarks' : ''}
               onChange={(e) => setFormData({ ...formData, lifecycleStage: e.target.value })}
             >
               {LIFECYCLE_STAGES.map((s) => (

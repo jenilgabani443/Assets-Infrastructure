@@ -43,7 +43,7 @@ router.patch(
   '/:id',
   validate([
     body('status').optional().isIn(['scheduled', 'in_progress', 'completed', 'overdue']).withMessage('Invalid status'),
-    body('cost').optional().isFloat({ min: 0 }).withMessage('Cost must be positive')
+    body('cost').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('Cost must be positive')
   ]),
   maintenanceController.patchMaintenanceLog
 );
@@ -55,7 +55,7 @@ router.patch('/:id/start', maintenanceController.startMaintenance);
 router.patch(
   '/:id/complete',
   validate([
-    body('cost').optional().isFloat({ min: 0 }).withMessage('Cost must be positive')
+    body('cost').optional({ values: 'falsy' }).isFloat({ min: 0 }).withMessage('Cost must be positive')
   ]),
   maintenanceController.completeMaintenance
 );

@@ -9,8 +9,10 @@ const router = express.Router();
 // All asset routes require authentication
 router.use(protect);
 
-// 1. Meta and aggregate routes (must precede /:id)
+// 1. Meta, export, and import routes (must precede /:id)
 router.get('/meta/departments', assetController.getDistinctDepartments);
+router.get('/export/csv', assetController.exportAssetsCsv);
+router.post('/import', authorize('admin', 'manager'), assetController.importAssets);
 
 // 2. Collection routes
 router.get('/', assetController.getAssets);
@@ -48,10 +50,23 @@ router.put(
 
 router.delete('/:id', authorize('admin'), assetController.deleteAsset);
 
-// 4. Asset QR Code Generation
+// 4. Asset Lifecycle Stage Transition (Admin, Manager)
+router.patch(
+  '/:id/lifecycle',
+  authorize('admin', 'manager'),
+  validate([
+    body('toStage').trim().notEmpty().withMessage('toStage is required')
+  ]),
+  assetController.transitionLifecycleStage
+);
+
+// 5. Asset History Timeline
+router.get('/:id/timeline', assetController.getAssetTimeline);
+
+// 6. Asset QR Code Generation
 router.get('/:id/qr', assetController.getAssetQrCode);
 
-// 5. Asset Audit Trail History
+// 7. Asset Audit Trail History
 router.get('/:id/audit', assetController.getAssetAuditHistory);
 
 export default router;

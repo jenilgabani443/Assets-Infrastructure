@@ -191,49 +191,73 @@ The system provides role-based access control (RBAC) with three distinct user ro
 - `GET /api/health` — System status, uptime, MongoDB connectivity state (Public)
 
 ### 5.2 Authentication (`/api/auth`)
-*Rate limited by stricter authRateLimiter (e.g. 20 requests per 15 minutes)*
-- `POST /api/auth/register` — Initial admin or manager registration (Admin only, or initial setup)
-- `POST /api/auth/login` — Authenticate email + password, returns JWT token + user profile
-- `GET /api/auth/me` — Return authenticated user session info (JWT required)
-- `PUT /api/auth/update-password` — Change password for authenticated user
+*Rate limited by stricter authLimiter (20 requests per 15 minutes)*
+- `POST /api/auth/register` — Allowed without token only if zero users exist (first user automatically becomes `admin`); otherwise requires authenticated `admin`.
+- `POST /api/auth/login` — Authenticate email + password, returns JWT token + user profile; rejects inactive accounts; logs an `AuditLog` entry.
+- `GET /api/auth/me` — Return authenticated user session info (JWT required).
+- `PATCH /api/auth/change-password` & `PUT /api/auth/update-password` — Change password for authenticated user with bcrypt hashing.
 
 ### 5.3 User Management (`/api/users`)
-*Admin role required for mutations*
-- `GET /api/users` — List users with pagination and role filters (Admin only)
-- `GET /api/users/:id` — Get single user profile (Admin only)
-- `POST /api/users` — Create new user (Admin only)
-- `PUT /api/users/:id` — Update user details or role (Admin only)
-- `PATCH /api/users/:id/status` — Toggle active/inactive status (Admin only)
-- `DELETE /api/users/:id` — Remove user (Admin only)
+*Admin role required for all endpoints*
+- `GET /api/users` — List users with pagination, text search (`search`), role filter (`role`), and status filter (`isActive`).
+- `GET /api/users/:id` — Get single user profile.
+- `POST /api/users` — Create new user account with assigned role.
+- `PUT /api/users/:id` — Update user details or role. Blocks self-demotion (`role !== 'admin'`) and self-deactivation.
+- `PATCH /api/users/:id/status` & `PATCH /api/users/:id/deactivate` — Toggle or deactivate user account status. Blocks admin self-deactivation.
 
 ### 5.4 Asset Categories (`/api/categories`)
-- `GET /api/categories` — List all asset categories and custom field definitions (Authenticated)
-- `GET /api/categories/:id` — Get specific category (Authenticated)
-- `POST /api/categories` — Create category with field definitions (Admin, Manager)
-- `PUT /api/categories/:id` — Update category and dynamic fields (Admin, Manager)
-- `DELETE /api/categories/:id` — Delete category (Admin only; blocked if assets exist)
+- `GET /api/categories` — List all asset categories and custom field definitions (Authenticated).
+- `GET /api/categories/:id` — Get specific category (Authenticated).
+- `POST /api/categories` — Create category with field definitions validation (Admin, Manager).
+- `PUT /api/categories/:id` — Update category metadata and dynamic fields (Admin, Manager).
+- `DELETE /api/categories/:id` — Delete category (Admin only; blocked with 400 if existing assets are assigned).
 
 ### 5.5 Infrastructure Assets (`/api/assets`)
-- `GET /api/assets` — Query assets with filtering (`category`, `lifecycleStage`, `department`, `status`), text search (`search`), pagination (`page`, `limit`), sorting (Authenticated)
-- `GET /api/assets/:id` — Get single asset with category population, maintenance logs, and lifecycle history (Authenticated)
-- `POST /api/assets` — Create new asset with dynamic field validation; automatically generates `AST-XXXX` tag (Admin, Manager)
-- `PUT /api/assets/:id` — Update asset attributes & custom fields (Admin, Manager)
-- `PATCH /api/assets/:id/stage` — Transition lifecycle stage with validation, creates `LifecycleEvent` & `AuditLog` (Admin, Manager)
-- `DELETE /api/assets/:id` — Soft-retire or permanently delete asset (Admin only)
-- `GET /api/assets/stats/summary` — Aggregate metrics: count by stage, category breakdown, cost total, replacement value (Authenticated)
-- `GET /api/assets/export/csv` — Export filtered asset dataset to CSV (Admin, Manager)
+- `GET /api/assets` — Query assets with filtering (`category`, `lifecycleStage`, `department`, `status`, `warrantyExpiringInDays`, `endOfLife`), text search (`search`), pagination (`page`, `limit`), sorting (`sort`).
+- `GET /api/assets/meta/departments` — Returns distinct list of department strings.
+- `GET /api/assets/export/csv` — Streams filtered inventory as a CSV file with dynamic custom fields flattened as `cf_<key>`.
+- `POST /api/assets/import` — Batch JSON import of asset records with category resolution and dynamic custom field validation. Supports `{ dryRun: true }`.
+- `POST /api/assets` — Create new asset; auto-generates `AST-XXXX` tag atomically, validates dynamic fields against category schema, logs initial `LifecycleEvent` & `AuditLog` (Admin, Manager).
+- `GET /api/assets/:id` — Get single asset with populated category and creator references.
+- `PUT /api/assets/:id` — Update asset attributes and dynamic fields. Rejects direct modifications of `lifecycleStage` or `assetTag` (Admin, Manager).
+- `DELETE /api/assets/:id` — Permanently delete asset and log audit trail (Admin only).
+- `PATCH /api/assets/:id/lifecycle` — Transition lifecycle stage governed by state machine. Setting `Installed` automatically sets `installationDate` if empty; records a `LifecycleEvent` and `stage_change` audit log (Admin, Manager).
+- `GET /api/assets/:id/timeline` — Returns chronological unified timeline merging lifecycle state changes and maintenance logs tagged with `kind`.
+- `GET /api/assets/:id/qr` — Generates a PNG Base64 Data URL encoding `${CLIENT_URL}/assets/:id`.
+- `GET /api/assets/:id/audit` — Retrieves complete chronological audit trail with before/after diffs for the asset.
 
 ### 5.6 Maintenance Management (`/api/maintenance`)
-- `GET /api/maintenance` — List maintenance logs with filters (`asset`, `status`, `type`, `technician`, `dateRange`) (Authenticated)
-- `GET /api/maintenance/my` — Get tasks assigned to logged-in technician (Technician, Admin, Manager)
-- `GET /api/maintenance/:id` — Get maintenance log details (Authenticated)
-- `POST /api/maintenance` — Create & schedule maintenance item; optionally auto-transitions asset to `Under Maintenance` (Admin, Manager)
-- `PUT /api/maintenance/:id` — Update maintenance details (Admin, Manager, or Assigned Technician for notes/status/completion)
-- `DELETE /api/maintenance/:id` — Delete maintenance record (Admin only)
-- `GET /api/maintenance/stats/summary` — Preventive vs corrective ratio, overdue count, total maintenance expenditure (Authenticated)
+- `GET /api/maintenance` — List maintenance logs with filters (`asset`, `status`, `type`, `technician`, `from`/`to`, `overdue=true`) and pagination. Technicians are restricted to tasks assigned to them. Auto-marks overdue tasks.
+- `GET /api/maintenance/:id` — Get maintenance log details.
+- `POST /api/maintenance` — Create & schedule maintenance item (Admin, Manager).
+- `PUT /api/maintenance/:id` — Full update of maintenance record (Admin, Manager).
+- `PATCH /api/maintenance/:id` — Partial update (`status`, `notes`, `cost`). Allowed for Admin, Manager, and Assigned Technician.
+- `PATCH /api/maintenance/:id/start` — Sets status `in_progress`. Transitions asset from `In Service` to `Under Maintenance` and records a `LifecycleEvent` (Admin, Manager, Technician).
+- `PATCH /api/maintenance/:id/complete` — Sets status `completed` and `completedDate`. Restores asset to `In Service` if no other in-progress maintenance exists, and records a `LifecycleEvent` (Admin, Manager, Technician).
+- `DELETE /api/maintenance/:id` — Delete maintenance record (Admin, Manager).
 
-### 5.7 Audit Logs (`/api/audit-logs`)
-- `GET /api/audit-logs` — Query immutable audit trail with filters (`entity`, `action`, `user`, `dateRange`) (Admin only)
+### 5.7 Dashboard & Analytics (`/api/dashboard`)
+- `GET /api/dashboard/stats` — High-performance aggregation pipeline returning:
+  - Inventory totals (`totalAssets`, `totalValue`, `totalCategories`, `totalMaintenanceLogs`)
+  - Asset count grouped by category (with names and icons)
+  - Asset count grouped by `lifecycleStage` and by `status`
+  - Lifespan health alerts: assets past expected lifespan or within 10% remaining lifespan
+  - Warranties expiring within 30 days
+  - Overdue maintenance count and upcoming tasks (next 14 days)
+  - 6-month monthly maintenance expenditure breakdown
+  - 10 most recent activities from `AuditLog`
+
+### 5.8 Real-Time Notifications (`/api/notifications`)
+- `GET /api/notifications` — Real-time computed alert counts for the in-app notification bell (overdue maintenance, expiring warranties, and past lifespan assets).
+
+### 5.9 Media Uploads (`/api/uploads`)
+- `POST /api/uploads/image` — Multer memory buffer upload to Cloudinary (max 5 MB, image mime-types only). Returns `{ url }`. If Cloudinary credentials are missing, returns a 503 error without crashing (Admin, Manager).
+
+### 5.10 Scheduled Background Jobs
+- `node-cron` job running daily at 08:00 AM (`0 8 * * *`):
+  - Automatically identifies and marks past scheduled maintenance as `overdue`.
+  - Dispatches an HTML operational digest email via Nodemailer to active administrators and managers (gracefully skipped with a log line if SMTP is unconfigured).
+  - Also exposes `runDailyDigestJob()` for on-demand execution.
 
 ---
 

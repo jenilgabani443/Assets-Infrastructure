@@ -16,6 +16,11 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import assetRoutes from './routes/assetRoutes.js';
+import maintenanceRoutes from './routes/maintenanceRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import { initScheduler } from './jobs/scheduler.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -71,17 +76,23 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/assets', assetRoutes);
+app.use('/api/maintenance', maintenanceRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/uploads', uploadRoutes);
+app.use('/api/notifications', notificationRoutes);
 
-// 7. 404 Route Not Found Handler
+// 8. 404 Route Not Found Handler
 app.use(notFoundHandler);
 
-// 8. Central Error Handler
+// 9. Central Error Handler
 app.use(errorHandler);
 
 // Connect to MongoDB and start listening
 const startServer = async () => {
   try {
     await connectDB();
+    // Initialize background jobs & scheduler
+    initScheduler();
   } catch (err) {
     console.error('⚠️  Failed to complete initial database connection step:', err.message);
   }

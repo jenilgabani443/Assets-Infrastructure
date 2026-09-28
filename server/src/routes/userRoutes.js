@@ -6,11 +6,14 @@ import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
-// Admin-only guard for all user management routes
-router.use(protect, authorize('admin'));
+// User routes with role-based access
+router.use(protect);
 
-// List users with search and pagination
-router.get('/', userController.getUsers);
+// List users with search and pagination (Admin and Manager for technician assignments)
+router.get('/', authorize('admin', 'manager'), userController.getUsers);
+
+// Admin-only guard for mutations and user administration
+router.use(authorize('admin'));
 
 // Create user
 router.post(

@@ -230,6 +230,24 @@ export const getDistinctDepartments = async (req, res, next) => {
 };
 
 /**
+ * Get lightweight list of assets for GIS Map visualization
+ */
+export const getAssetsForMap = async (req, res, next) => {
+  try {
+    const assets = await Asset.find({
+      'location.lat': { $ne: null },
+      'location.lng': { $ne: null }
+    })
+      .select('name assetTag location category subcategory lifecycleStage status cost')
+      .populate('category', 'name icon');
+
+    return sendSuccess(res, 'Map assets retrieved successfully', assets);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get single asset by ID (All roles)
  */
 export const getAssetById = async (req, res, next) => {
@@ -1000,6 +1018,7 @@ export default {
   validateCustomFields,
   transitionLifecycleStage,
   getAssetTimeline,
+  getAssetsForMap,
   exportAssetsCsv,
   importAssets
 };

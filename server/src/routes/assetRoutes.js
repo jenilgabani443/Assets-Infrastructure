@@ -12,6 +12,7 @@ router.use(protect);
 // 1. Meta, export, and import routes (must precede /:id)
 router.get('/meta/departments', assetController.getDistinctDepartments);
 router.get('/export/csv', assetController.exportAssetsCsv);
+router.get('/map', assetController.getAssetsForMap);
 router.post('/import', authorize('admin', 'manager'), assetController.importAssets);
 
 // 2. Collection routes
